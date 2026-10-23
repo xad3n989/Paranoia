@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --term-bg: #0c0d0e;
+    --term-fg: #22c55e;
+    --term-bright: #4ade80;
+    --term-dim: #15803d;
+    --term-border: #166534;
+    --term-accent: #86efac;
+    --term-sel-bg: #22c55e;
+    --term-sel-fg: #000000;
+  }
+
+  body.theme-matrix {
+    --term-bg: #050805;
+    --term-fg: #22c55e;
+    --term-bright: #4ade80;
+    --term-dim: #14532d;
+    --term-border: #166534;
+    --term-accent: #86efac;
+    --term-sel-bg: #22c55e;
+    --term-sel-fg: #000000;
+  }
+
+  body.theme-cmd {
+    --term-bg: #0c0c0c;
+    --term-fg: #cccccc;
+    --term-bright: #ffffff;
+    --term-dim: #767676;
+    --term-border: #333333;
+    --term-accent: #3b82f6;
+    --term-sel-bg: #ffffff;
+    --term-sel-fg: #000000;
+  }
+
+  body.theme-crimson {
+    --term-bg: #0d0404;
+    --term-fg: #ef4444;
+    --term-bright: #f87171;
+    --term-dim: #7f1d1d;
+    --term-border: #991b1b;
+    --term-accent: #fca5a5;
+    --term-sel-bg: #ef4444;
+    --term-sel-fg: #000000;
+  }
+
+  body.theme-amber {
+    --term-bg: #0c0903;
+    --term-fg: #f59e0b;
+    --term-bright: #fbbf24;
+    --term-dim: #78350f;
+    --term-border: #92400e;
+    --term-accent: #fde68a;
+    --term-sel-bg: #f59e0b;
+    --term-sel-fg: #000000;
+  }
+
+  body.theme-win95 {
+    --term-bg: #000080;
+    --term-fg: #ffffff;
+    --term-bright: #ffffff;
+    --term-dim: #a0a0ff;
+    --term-border: #4040c0;
+    --term-accent: #ffff00;
+    --term-sel-bg: #ffffff;
+    --term-sel-fg: #000080;
+  }
+
+  body {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Courier New', monospace;
+    background-color: var(--term-bg);
+    color: var(--term-fg);
+  }
+
+  ::selection {
+    background-color: var(--term-sel-bg);
+    color: var(--term-sel-fg);
+  }
+}
+
+/* CRT Scanlines Overlay */
+.crt-overlay {
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%, 
+    rgba(0, 0, 0, 0.35) 50%
+  );
+  background-size: 100% 4px;
+  pointer-events: none;
+}
+
+.crt-flicker {
+  animation: flicker 0.15s infinite;
+  pointer-events: none;
+}
+
+@keyframes flicker {
+  0% { opacity: 0.99; }
+  50% { opacity: 0.97; }
+  100% { opacity: 0.99; }
+}
+
+@keyframes cursor-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+.animate-cursor {
+  animation: cursor-blink 1s infinite;
+}
+
+/* Custom retro scrollbar */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+::-webkit-scrollbar-track {
+  background: var(--term-bg);
+  border-left: 1px solid var(--term-border);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--term-dim);
+  border: 1px solid var(--term-border);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--term-fg);
+}

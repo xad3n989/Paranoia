@@ -1,0 +1,6 @@
+{
+  "name": "PARANOIA - Windows Tor Routing Suite",
+  "description": "Terminal-style Windows batch utility that routes all system traffic through Tor with active circuit visualization, killswitch firewall rules, leak testing, and downloadable batch scripts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

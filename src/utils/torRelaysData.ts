@@ -1,0 +1,178 @@
+export interface TorNode {
+  nickname: string;
+  fingerprint: string;
+  ip: string;
+  port: number;
+  country: string;
+  countryCode: string;
+  flagEmoji: string;
+  flags: string[];
+  bandwidthMbps: number;
+  latencyMs: number;
+  uptimeDays: number;
+}
+
+export const GUARD_RELAYS: TorNode[] = [
+  {
+    nickname: 'BifrostGuard01',
+    fingerprint: '9E3D824A10C29E75BB32E64A5F112D97B84180A2',
+    ip: '185.220.101.44',
+    port: 9001,
+    country: 'Iceland',
+    countryCode: 'IS',
+    flagEmoji: '🇮🇸',
+    flags: ['Guard', 'Fast', 'HSDir', 'Running', 'Stable', 'V2Dir', 'Valid'],
+    bandwidthMbps: 95.4,
+    latencyMs: 42,
+    uptimeDays: 241,
+  },
+  {
+    nickname: 'SwissBunkerEntry',
+    fingerprint: '38A14B8892EF0071BC3990812F4902188CEF9281',
+    ip: '194.36.177.12',
+    port: 443,
+    country: 'Switzerland',
+    countryCode: 'CH',
+    flagEmoji: '🇨🇭',
+    flags: ['Guard', 'Fast', 'Running', 'Stable', 'Valid'],
+    bandwidthMbps: 120.8,
+    latencyMs: 28,
+    uptimeDays: 512,
+  },
+  {
+    nickname: 'ValhallaRelay',
+    fingerprint: '76FD1288390AA409605EF72703BC29198A826B54',
+    ip: '178.175.132.8',
+    port: 9001,
+    country: 'Norway',
+    countryCode: 'NO',
+    flagEmoji: '🇳🇴',
+    flags: ['Guard', 'Fast', 'HSDir', 'Running', 'Stable', 'Valid'],
+    bandwidthMbps: 88.2,
+    latencyMs: 36,
+    uptimeDays: 189,
+  },
+  {
+    nickname: 'CyberRhineGuard',
+    fingerprint: '5176A93F27CB89178BB54A411299C880FE392A0B',
+    ip: '94.130.180.201',
+    port: 9001,
+    country: 'Germany',
+    countryCode: 'DE',
+    flagEmoji: '🇩🇪',
+    flags: ['Guard', 'Fast', 'Running', 'Stable', 'V2Dir', 'Valid'],
+    bandwidthMbps: 154.6,
+    latencyMs: 24,
+    uptimeDays: 420,
+  },
+];
+
+export const MIDDLE_RELAYS: TorNode[] = [
+  {
+    nickname: 'NeutronHop09',
+    fingerprint: 'A489311DE62194883BEFA98418042B319803719C',
+    ip: '193.107.84.19',
+    port: 9001,
+    country: 'Sweden',
+    countryCode: 'SE',
+    flagEmoji: '🇸🇪',
+    flags: ['Fast', 'Running', 'Stable', 'Valid'],
+    bandwidthMbps: 110.2,
+    latencyMs: 48,
+    uptimeDays: 310,
+  },
+  {
+    nickname: 'KryptonNode7',
+    fingerprint: '5618A9E8893427E88A1904712BA498E019842F88',
+    ip: '185.165.170.98',
+    port: 443,
+    country: 'Finland',
+    countryCode: 'FI',
+    flagEmoji: '🇫🇮',
+    flags: ['Fast', 'Running', 'Stable', 'Valid'],
+    bandwidthMbps: 98.0,
+    latencyMs: 51,
+    uptimeDays: 145,
+  },
+  {
+    nickname: 'IronCurtainHop',
+    fingerprint: 'CC4481977E41094AA19876255104E9084B29817E',
+    ip: '109.70.100.22',
+    port: 9001,
+    country: 'Austria',
+    countryCode: 'AT',
+    flagEmoji: '🇦🇹',
+    flags: ['Fast', 'HSDir', 'Running', 'Stable', 'Valid'],
+    bandwidthMbps: 135.5,
+    latencyMs: 39,
+    uptimeDays: 280,
+  },
+  {
+    nickname: 'AmberGlowMiddle',
+    fingerprint: '184980AA33190FE742189012356BDE419087BC21',
+    ip: '195.201.225.14',
+    port: 8080,
+    country: 'Estonia',
+    countryCode: 'EE',
+    flagEmoji: '🇪🇪',
+    flags: ['Fast', 'Running', 'Stable', 'Valid'],
+    bandwidthMbps: 84.1,
+    latencyMs: 57,
+    uptimeDays: 95,
+  },
+];
+
+export const EXIT_RELAYS: TorNode[] = [
+  {
+    nickname: 'DutchExitHarbor',
+    fingerprint: '8490AF31B8942187CB14981EAA2400918734BC19',
+    ip: '185.220.101.5',
+    port: 443,
+    country: 'Netherlands',
+    countryCode: 'NL',
+    flagEmoji: '🇳🇱',
+    flags: ['Exit', 'Fast', 'Running', 'Stable', 'Valid'],
+    bandwidthMbps: 140.4,
+    latencyMs: 62,
+    uptimeDays: 412,
+  },
+  {
+    nickname: 'CuraçaoFreedomExit',
+    fingerprint: '298711AA03947816BCA789123049184EFBC44890',
+    ip: '198.98.56.110',
+    port: 9001,
+    country: 'Canada',
+    countryCode: 'CA',
+    flagEmoji: '🇨🇦',
+    flags: ['Exit', 'Fast', 'Running', 'Stable', 'Valid'],
+    bandwidthMbps: 104.2,
+    latencyMs: 88,
+    uptimeDays: 167,
+  },
+  {
+    nickname: 'BalkanExitNode',
+    fingerprint: 'DF7819034BA77189E0018476295CDA9188034AA8',
+    ip: '178.17.170.89',
+    port: 443,
+    country: 'Romania',
+    countryCode: 'RO',
+    flagEmoji: '🇷🇴',
+    flags: ['Exit', 'Fast', 'Running', 'Stable', 'Valid'],
+    bandwidthMbps: 125.0,
+    latencyMs: 69,
+    uptimeDays: 320,
+  },
+  {
+    nickname: 'PanamaCipherExit',
+    fingerprint: '99014BCE88124976FE41098235ACBE19047188DA',
+    ip: '190.14.89.204',
+    port: 9001,
+    country: 'Panama',
+    countryCode: 'PA',
+    flagEmoji: '🇵🇦',
+    flags: ['Exit', 'Fast', 'Running', 'Valid'],
+    bandwidthMbps: 76.5,
+    latencyMs: 112,
+    uptimeDays: 88,
+  },
+];
