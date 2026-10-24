@@ -1,0 +1,87 @@
+name: Build and Release PARANOIA
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release Tag Name (e.g. v2.5.0)'
+        required: true
+        default: 'v2.5.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Web Console Distribution
+        run: npm run build
+
+      - name: Package Windows Release Archive
+        id: package
+        shell: pwsh
+        run: |
+          $version = if ("${{ github.event.inputs.tag_name }}") { "${{ github.event.inputs.tag_name }}" } else { "${{ github.ref_name }}" }
+          $zipName = "paranoia-$version-windows-x64.zip"
+          Write-Host "Packaging $zipName..."
+          
+          # Compress windows distribution directory
+          Compress-Archive -Path ./windows/* -DestinationPath "./$zipName" -Force
+          
+          # Compute SHA-256 Checksum
+          $hash = (Get-FileHash -Path "./$zipName" -Algorithm SHA256).Hash
+          Write-Host "SHA256: $hash"
+          Set-Content -Path "./SHA256SUMS.txt" -Value "$hash  $zipName"
+          
+          echo "ZIP_NAME=$zipName" >> $env:GITHUB_OUTPUT
+          echo "HASH=$hash" >> $env:GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "PARANOIA ${{ github.ref_name || github.event.inputs.tag_name }} - Windows Tor System Router"
+          tag_name: ${{ github.ref_name || github.event.inputs.tag_name }}
+          body: |
+            ### PARANOIA Release ${{ github.ref_name || github.event.inputs.tag_name }}
+            
+            System-wide transparent Tor routing engine for Windows 10/11 with zero-leak killswitch and configurable exit node controls.
+            
+            #### 📦 Download Assets:
+            - **`${{ steps.package.outputs.ZIP_NAME }}`**
+            - **`SHA256SUMS.txt`**: `${{ steps.package.outputs.HASH }}`
+            
+            #### 🚀 Quick Instructions:
+            1. Extract the ZIP archive to `C:\PARANOIA\`.
+            2. Run `setup.bat` or right-click `paranoia.bat` -> **Run as Administrator**.
+            3. Select `[1]` to activate full system Tor routing.
+            
+            #### 🛡️ Integrity Verification:
+            ```powershell
+            Get-FileHash -Algorithm SHA256 ${{ steps.package.outputs.ZIP_NAME }}
+            ```
+          draft: false
+          prerelease: false
+          files: |
+            paranoia-*-windows-x64.zip
+            SHA256SUMS.txt
+            windows/paranoia.bat
+            windows/torrc
+            windows/killswitch.bat
+            windows/emergency_restore.bat
+            windows/setup.bat

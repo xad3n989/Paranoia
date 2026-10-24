@@ -1,0 +1,37 @@
+## ==============================================================================
+##  PARANOIA TOR CONFIGURATION FILE (torrc) - v2.5.0
+##  Optimized for Windows System-Wide Transparent Proxying & Anti-Leak Protection
+## ==============================================================================
+
+## Client SOCKS5 Proxy Listener
+SocksPort 127.0.0.1:9050
+
+## DNS Resolution over Tor (Prevents ISP DNS Leaks on UDP Port 53)
+DNSPort 127.0.0.1:5353
+AutomapHostsOnResolve 1
+AutomapHostsSuffixes .exit,.onion
+VirtualAddrNetworkIPv4 10.192.0.0/10
+
+## Control Port for Circuit Management (Signal NEWNYM & Heartbeat Monitor)
+ControlPort 127.0.0.1:9051
+CookieAuthentication 0
+
+## Privacy & Security Hardening
+SafeLogging 1
+TestSocks 1
+WarnUnsafeSocks 1
+ClientOnly 1
+HardwareAccel 1
+
+## Circuit Lifecycle
+MaxCircuitDirtiness 600
+NewCircuitPeriod 30
+
+## Preferred Exit Node Jurisdictions
+## StrictNodes 1 (Force Tor to exclusively use the nodes specified below)
+ExitNodes {ch},{is},{nl},{se},{no},{pa}
+StrictNodes 0
+
+## Logging & Runtime Cache
+Log notice stdout
+DataDirectory .\tor_data

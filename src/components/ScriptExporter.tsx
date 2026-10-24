@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
+import JSZip from 'jszip';
 import {
   BATCH_MAIN_SCRIPT,
   TORRC_CONFIG,
   POWERSHELL_ROUTER_SCRIPT,
   KILLSWITCH_STANDALONE,
   EMERGENCY_RESTORE_SCRIPT,
+  CPP_NATIVE_ENGINE,
+  CPP_BUILD_BAT,
+  CPP_INSTALLER_CODE,
+  INNO_SETUP_CODE,
 } from '../utils/scriptsGenerator';
-import { Copy, Check, Download, X, FileCode, Shield, Terminal } from 'lucide-react';
+import { Copy, Check, Download, X, FileCode, Shield, Terminal, Cpu } from 'lucide-react';
 import { soundFx } from '../utils/audio';
 
 interface ScriptExporterProps {
@@ -15,12 +20,32 @@ interface ScriptExporterProps {
 }
 
 export const ScriptExporter: React.FC<ScriptExporterProps> = ({ isOpen, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'batch' | 'torrc' | 'powershell' | 'killswitch' | 'restore'>('batch');
+  const [activeTab, setActiveTab] = useState<'installer' | 'iss' | 'cpp' | 'buildbat' | 'batch' | 'torrc' | 'powershell' | 'killswitch' | 'restore'>('installer');
   const [copied, setCopied] = useState(false);
 
   if (!isOpen) return null;
 
   const files = {
+    installer: {
+      name: 'installer.cpp',
+      code: CPP_INSTALLER_CODE,
+      desc: 'Custom Native C++ Windows Installer (ParanoiaSetup.exe)',
+    },
+    iss: {
+      name: 'paranoia.iss',
+      code: INNO_SETUP_CODE,
+      desc: 'Inno Setup Script (Compiles ParanoiaSetup-v2.5.0-x64.exe installer)',
+    },
+    cpp: {
+      name: 'paranoia.cpp',
+      code: CPP_NATIVE_ENGINE,
+      desc: 'Native Win32 C++ Tor System Router (WinINet, Winsock2, Windows Firewall API)',
+    },
+    buildbat: {
+      name: 'build.bat',
+      code: CPP_BUILD_BAT,
+      desc: 'Automated 1-click build script for MSVC (cl.exe) and MinGW (g++)',
+    },
     batch: {
       name: 'paranoia.bat',
       code: BATCH_MAIN_SCRIPT,
@@ -70,20 +95,39 @@ export const ScriptExporter: React.FC<ScriptExporterProps> = ({ isOpen, onClose 
     URL.revokeObjectURL(url);
   };
 
-  const handleDownloadAll = () => {
-    soundFx.playConnectedChirp();
-    // Download primary batch file and torrc
-    Object.values(files).forEach((f) => {
-      const blob = new Blob([f.code], { type: 'text/plain;charset=utf-8' });
+  const [downloadingZip, setDownloadingZip] = useState(false);
+
+  const handleDownloadAll = async () => {
+    try {
+      setDownloadingZip(true);
+      soundFx.playConnectedChirp();
+      const zip = new JSZip();
+      const folder = zip.folder('paranoia-v2.5.0-windows-x64');
+      if (folder) {
+        folder.file('setup.bat', `@echo off\ntitle PARANOIA Installer\ncall paranoia.bat\n`);
+        folder.file('paranoia.cpp', CPP_NATIVE_ENGINE);
+        folder.file('build.bat', CPP_BUILD_BAT);
+        folder.file('paranoia.bat', BATCH_MAIN_SCRIPT);
+        folder.file('torrc', TORRC_CONFIG);
+        folder.file('killswitch.bat', KILLSWITCH_STANDALONE);
+        folder.file('paranoia.ps1', POWERSHELL_ROUTER_SCRIPT);
+        folder.file('emergency_restore.bat', EMERGENCY_RESTORE_SCRIPT);
+        folder.file('README.txt', 'PARANOIA v2.5.0 - WINDOWS TOR TRANSPARENT SYSTEM ROUTER\nCompile native C++ with build.bat or run setup.bat as Administrator.\n');
+      }
+      const blob = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = f.name;
+      link.download = 'paranoia-v2.5.0-windows-x64.zip';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-    });
+    } catch {
+      soundFx.playError();
+    } finally {
+      setTimeout(() => setDownloadingZip(false), 800);
+    }
   };
 
   return (

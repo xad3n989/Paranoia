@@ -7,6 +7,9 @@ import { ScriptExporter } from './components/ScriptExporter';
 import { RelayInspector } from './components/RelayInspector';
 import { TorrcConfigModal, ExitNodePreference } from './components/TorrcConfigModal';
 import { LeakTestModal } from './components/LeakTestModal';
+import { GitHubReleaseModal } from './components/GitHubReleaseModal';
+import { CppSourceViewer } from './components/CppSourceViewer';
+import { WindowsInstallerWizard } from './components/WindowsInstallerWizard';
 import { MatrixRain } from './components/MatrixRain';
 import { GUARD_RELAYS, MIDDLE_RELAYS, EXIT_RELAYS, TorNode } from './utils/torRelaysData';
 import { detectPublicIP, IPReport } from './utils/leakCheck';
@@ -23,6 +26,9 @@ import {
   ShieldAlert,
   Power,
   RotateCcw,
+  Github,
+  Code,
+  Cpu,
 } from 'lucide-react';
 
 type RoutingStatus = 'IDLE' | 'BOOTSTRAPPING' | 'CONNECTED' | 'TERMINATING';
@@ -77,6 +83,8 @@ export default function App() {
   const [relayModalOpen, setRelayModalOpen] = useState(false);
   const [configModalOpen, setConfigModalOpen] = useState(false);
   const [leakModalOpen, setLeakModalOpen] = useState(false);
+  const [githubModalOpen, setGithubModalOpen] = useState(false);
+  const [installerOpen, setInstallerOpen] = useState(false);
 
   // Leak Test Report
   const [leakReport, setLeakReport] = useState<IPReport | null>(null);
@@ -91,6 +99,8 @@ export default function App() {
     return DEFAULT_TORRC_CONFIG;
   });
 
+  const [mainView, setMainView] = useState<'console' | 'cpp_source'>('console');
+
   // Terminal Lines
   const [consoleLines, setConsoleLines] = useState<ConsoleLine[]>([
     {
@@ -101,22 +111,27 @@ export default function App() {
     {
       id: 'init-2',
       type: 'output',
-      text: 'PARANOIA v2.4.9 [TOR TRANSPARENT PROXY ENGINE] - WIN32/x64',
+      text: 'PARANOIA v2.5.0 [NATIVE C++ WIN32 TOR SYSTEM ENGINE] - (paranoia.exe)',
     },
     {
       id: 'init-3',
       type: 'notice',
-      text: 'Loaded torrc config from %APPDATA%\\tor\\torrc (SocksPort 9050, DNSPort 5353)',
+      text: 'Runtime: ISO C++17 • Compiler: MSVC cl.exe / MinGW g++ • Zero HTML / Native Win32 PE64',
     },
     {
       id: 'init-4',
+      type: 'success',
+      text: '[OK] WinINet & Winsock2 Subsystems Initialized. ControlPort: 127.0.0.1:9051',
+    },
+    {
+      id: 'init-5',
       type: 'warning',
       text: '[NOTICE] Zero-Leak Windows Firewall Killswitch is ARMED by default.',
     },
     {
-      id: 'init-5',
+      id: 'init-6',
       type: 'output',
-      text: 'Type "help" or select an option [1-9] to execute directive.',
+      text: 'Type "help", "cpp" to view C++ source, or select an option [1-9].',
     },
   ]);
 
@@ -442,6 +457,7 @@ export default function App() {
         addLog('  checkip / leaktest  : Audit public IP, WebRTC & DNS leak vectors', 'notice');
         addLog('  nodes / circuits    : Inspect Onion directory relays and consensus', 'notice');
         addLog('  export / download   : Export genuine Windows .bat & .ps1 scripts', 'notice');
+        addLog('  cpp / c++ / native  : View native C++ source (paranoia.cpp) & build.bat', 'notice');
         addLog('  torrc / config      : Configure preferred/mandatory exit nodes', 'notice');
         addLog('  drop / testkill     : Simulate Tor connection drop to test killswitch', 'notice');
         addLog('  color <0A|0F|0C|0E|1F>: Switch terminal color scheme', 'notice');
@@ -493,6 +509,29 @@ export default function App() {
       case 'export':
       case 'download':
         setExportModalOpen(true);
+        break;
+
+      case 'github':
+      case 'release':
+      case 'releases':
+      case 'repo':
+        setGithubModalOpen(true);
+        addLog('[*] Opening GitHub Repository & Official Release Manager (v2.5.0)...', 'notice');
+        break;
+
+      case 'cpp':
+      case 'c++':
+      case 'native':
+        setExportModalOpen(true);
+        addLog('[*] Opening Native C++ Win32 Router Source Code (paranoia.cpp & build.bat)...', 'success');
+        addLog('[*] Compile with: cl.exe /O2 /EHsc paranoia.cpp wininet.lib ws2_32.lib /Fe:paranoia.exe', 'notice');
+        break;
+
+      case 'install':
+      case 'installer':
+      case 'setup':
+        setInstallerOpen(true);
+        addLog('[*] Launching Custom Windows Setup Wizard (ParanoiaSetup.exe)...', 'notice');
         break;
 
       case '8':
@@ -682,9 +721,9 @@ export default function App() {
           {/* Windows Title Bar */}
           <div className="bg-black border-b border-[var(--term-border)] px-3 py-1.5 flex items-center justify-between select-none">
             <div className="flex items-center gap-2 text-xs font-bold text-[var(--term-bright)] truncate">
-              <TerminalIcon className="w-4 h-4 text-[var(--term-bright)] shrink-0" />
+              <Cpu className="w-4 h-4 text-emerald-400 shrink-0" />
               <span className="truncate">
-                Administrator: C:\Windows\System32\cmd.exe - paranoia.bat [PID: 4092]
+                Administrator: C:\PARANOIA\paranoia.exe - [Native C++ Win32 PE64 Engine] (PID: 4092)
               </span>
             </div>
 
@@ -757,17 +796,61 @@ export default function App() {
             </div>
           </div>
 
-          {/* Quick Action Top Navigation Strip */}
+          {/* Quick Action Top Navigation Strip with C++ View Switcher */}
           <div className="bg-black/60 border-b border-[var(--term-border)] px-3 py-1.5 flex flex-wrap items-center justify-between text-xs gap-2 select-none">
-            <div className="flex items-center gap-3">
-              <span className="font-bold text-[var(--term-bright)]">PARANOIA v2.4.9</span>
-              <span className="text-[var(--term-dim)]">|</span>
-              <span className="text-[var(--term-dim)]">SOCKS5: 127.0.0.1:9050</span>
-              <span className="text-[var(--term-dim)]">|</span>
-              <span className="text-[var(--term-dim)]">DNS: 127.0.0.1:5353</span>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center border border-[var(--term-border)] bg-black">
+                <button
+                  onClick={() => setMainView('console')}
+                  className={`px-2.5 py-1 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors ${
+                    mainView === 'console'
+                      ? 'bg-[var(--term-fg)] text-black'
+                      : 'text-[var(--term-dim)] hover:text-[var(--term-fg)]'
+                  }`}
+                >
+                  <TerminalIcon className="w-3 h-3" />
+                  <span>[🖥️ C++ CONSOLE]</span>
+                </button>
+                <button
+                  onClick={() => setMainView('cpp_source')}
+                  className={`px-2.5 py-1 text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors ${
+                    mainView === 'cpp_source'
+                      ? 'bg-[var(--term-fg)] text-black'
+                      : 'text-[var(--term-dim)] hover:text-[var(--term-fg)]'
+                  }`}
+                >
+                  <Code className="w-3 h-3" />
+                  <span>[📄 C++ SOURCE (paranoia.cpp)]</span>
+                </button>
+              </div>
+
+              <span className="hidden lg:inline text-[var(--term-dim)]">|</span>
+              <span className="hidden lg:inline text-[var(--term-dim)]">SOCKS5: 127.0.0.1:9050</span>
+              <span className="hidden lg:inline text-[var(--term-dim)]">|</span>
+              <span className="hidden lg:inline text-[var(--term-dim)]">DNS: 127.0.0.1:5353</span>
             </div>
 
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  soundFx.playBeep(1100, 0.05);
+                  setInstallerOpen(true);
+                }}
+                className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] border border-emerald-400 flex items-center gap-1.5 cursor-pointer shadow-md transition-colors"
+                title="Launch the Custom Windows Setup Wizard (ParanoiaSetup.exe)"
+              >
+                <Shield className="w-3.5 h-3.5" />
+                <span>RUN WINDOWS INSTALLER (ParanoiaSetup.exe)</span>
+              </button>
+
+              <button
+                onClick={() => setGithubModalOpen(true)}
+                className="px-2.5 py-0.5 border border-emerald-500 bg-emerald-950/40 text-emerald-300 hover:bg-emerald-500 hover:text-black text-[11px] font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm"
+              >
+                <Github className="w-3.5 h-3.5" />
+                <span>RELEASES [v2.5.0]</span>
+              </button>
+
               <button
                 onClick={() => setConfigModalOpen(true)}
                 className="px-2 py-0.5 border border-[var(--term-border)] hover:border-[var(--term-bright)] hover:bg-[var(--term-fg)]/10 text-[11px] flex items-center gap-1 cursor-pointer transition-colors"
@@ -781,7 +864,7 @@ export default function App() {
                 className="px-2 py-0.5 border border-[var(--term-bright)] bg-[var(--term-dim)]/20 hover:bg-[var(--term-fg)] hover:text-black text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
               >
                 <Download className="w-3 h-3" />
-                <span>EXPORT .BAT SUITE</span>
+                <span>DOWNLOAD C++ / BAT</span>
               </button>
             </div>
           </div>
@@ -860,56 +943,62 @@ export default function App() {
               </div>
             </div>
 
-            {/* REAL-TIME SPEED, LATENCY & HEARTBEAT TELEMETRY PANEL */}
-            <LiveTelemetryPanel
-              status={status}
-              downloadSpeed={downloadSpeed}
-              uploadSpeed={uploadSpeed}
-              latencyMs={latencyMs}
-              jitterMs={jitterMs}
-              heartbeatHealthy={heartbeatHealthy}
-              killswitchArmed={killswitchArmed}
-              killswitchTriggered={killswitchTriggered}
-              onSimulateBrowse={() => {
-                setDownloadSpeed((prev) => prev + 2400);
-                setUploadSpeed((prev) => prev + 450);
-                addLog('[*] Simulating web browser burst traffic via SOCKS5 proxy (127.0.0.1:9050)...', 'notice');
-              }}
-              onSimulateDrop={handleSimulateDrop}
-              onRecoverConnection={handleRecoverConnection}
-              activeSockets={activeSockets}
-            />
+            {mainView === 'cpp_source' ? (
+              <CppSourceViewer />
+            ) : (
+              <>
+                {/* REAL-TIME SPEED, LATENCY & HEARTBEAT TELEMETRY PANEL */}
+                <LiveTelemetryPanel
+                  status={status}
+                  downloadSpeed={downloadSpeed}
+                  uploadSpeed={uploadSpeed}
+                  latencyMs={latencyMs}
+                  jitterMs={jitterMs}
+                  heartbeatHealthy={heartbeatHealthy}
+                  killswitchArmed={killswitchArmed}
+                  killswitchTriggered={killswitchTriggered}
+                  onSimulateBrowse={() => {
+                    setDownloadSpeed((prev) => prev + 2400);
+                    setUploadSpeed((prev) => prev + 450);
+                    addLog('[*] Simulating web browser burst traffic via SOCKS5 proxy (127.0.0.1:9050)...', 'notice');
+                  }}
+                  onSimulateDrop={handleSimulateDrop}
+                  onRecoverConnection={handleRecoverConnection}
+                  activeSockets={activeSockets}
+                />
 
-            {/* TOR ONION CIRCUIT TOPOLOGY */}
-            <CircuitVisualizer
-              status={status}
-              guard={guardNode}
-              relay={middleNode}
-              exit={exitNode}
-              onNewIdentity={handleNewIdentity}
-              isRerolling={isRerolling}
-              totalKbDown={totalKbDown}
-              totalKbUp={totalKbUp}
-              downloadSpeed={downloadSpeed}
-              uploadSpeed={uploadSpeed}
-            />
+                {/* TOR ONION CIRCUIT TOPOLOGY */}
+                <CircuitVisualizer
+                  status={status}
+                  guard={guardNode}
+                  relay={middleNode}
+                  exit={exitNode}
+                  onNewIdentity={handleNewIdentity}
+                  isRerolling={isRerolling}
+                  totalKbDown={totalKbDown}
+                  totalKbUp={totalKbUp}
+                  downloadSpeed={downloadSpeed}
+                  uploadSpeed={uploadSpeed}
+                />
 
-            {/* CLASSIC WINDOWS BATCH MENU (Options 1-9) */}
-            <BatchMenu
-              onSelectOption={handleBatchMenuOption}
-              status={status}
-              killswitchArmed={killswitchArmed}
-              dnsOverTor={status === 'CONNECTED'}
-              currentExitIp={exitNode?.ip}
-              isLeakTesting={isLeakTesting}
-            />
+                {/* CLASSIC WINDOWS BATCH MENU (Options 1-9) */}
+                <BatchMenu
+                  onSelectOption={handleBatchMenuOption}
+                  status={status}
+                  killswitchArmed={killswitchArmed}
+                  dnsOverTor={status === 'CONNECTED'}
+                  currentExitIp={exitNode?.ip}
+                  isLeakTesting={isLeakTesting}
+                />
 
-            {/* INTERACTIVE WINDOWS COMMAND PROMPT TERMINAL */}
-            <TerminalPrompt
-              lines={consoleLines}
-              onCommand={handleCommand}
-              onClear={() => setConsoleLines([])}
-            />
+                {/* INTERACTIVE WINDOWS COMMAND PROMPT TERMINAL */}
+                <TerminalPrompt
+                  lines={consoleLines}
+                  onCommand={handleCommand}
+                  onClear={() => setConsoleLines([])}
+                />
+              </>
+            )}
           </div>
 
           {/* Windows Status Bar Footer */}
@@ -963,6 +1052,22 @@ export default function App() {
         onRecheck={handleRunLeakTest}
         isTesting={isLeakTesting}
       />
+
+      <GitHubReleaseModal
+        isOpen={githubModalOpen}
+        onClose={() => setGithubModalOpen(false)}
+      />
+
+      {installerOpen && (
+        <WindowsInstallerWizard
+          onInstallComplete={() => {
+            setInstallerOpen(false);
+            addLog('[OK] Custom Windows Installation completed! Starting Tor system router...', 'success');
+            handleStartRouting();
+          }}
+          onCancel={() => setInstallerOpen(false)}
+        />
+      )}
     </div>
   );
 }

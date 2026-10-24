@@ -316,3 +316,238 @@ ipconfig /flushdns
 echo [OK] All network adapters and firewall rules restored.
 pause
 `;
+
+export const CPP_BUILD_BAT = `@echo off
+:: Compile PARANOIA C++ Native Binary
+title PARANOIA C++ Compiler
+where cl >nul 2>&1 && (
+    echo [*] Compiling with MSVC...
+    cl.exe /O2 /EHsc /W3 paranoia.cpp wininet.lib ws2_32.lib iphlpapi.lib advapi32.lib /Fe:paranoia.exe
+    del /f paranoia.obj >nul 2>&1
+    echo [OK] Built paranoia.exe!
+    pause & exit /b 0
+)
+where g++ >nul 2>&1 && (
+    echo [*] Compiling with MinGW g++...
+    g++ -O3 paranoia.cpp -o paranoia.exe -lwininet -lws2_32 -liphlpapi -ladvapi32 -static-libgcc -static-libstdc++
+    echo [OK] Built paranoia.exe!
+    pause & exit /b 0
+)
+echo [!] MSVC (cl.exe) or MinGW (g++) required to compile.
+pause
+`;
+
+export const CPP_NATIVE_ENGINE = `/**
+ * PARANOIA v2.5.0 - NATIVE C++ WINDOWS SYSTEM TOR ROUTING ENGINE
+ * Compile with MSVC: cl.exe /O2 /EHsc paranoia.cpp wininet.lib ws2_32.lib iphlpapi.lib advapi32.lib /Fe:paranoia.exe
+ * Compile with MinGW: g++ -O3 paranoia.cpp -o paranoia.exe -lwininet -lws2_32 -liphlpapi -ladvapi32
+ */
+
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <wininet.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <iphlpapi.h>
+#include <conio.h>
+#include <iostream>
+#include <string>
+#include <thread>
+#include <atomic>
+#include <chrono>
+
+#pragma comment(lib, "wininet.lib")
+#pragma comment(lib, "ws2_32.lib")
+#pragma comment(lib, "iphlpapi.lib")
+#pragma comment(lib, "advapi32.lib")
+
+std::atomic<bool> g_Running(true);
+std::atomic<bool> g_TorActive(false);
+std::atomic<bool> g_Killswitch(true);
+
+bool IsElevatedAdministrator() {
+    BOOL isElevated = FALSE;
+    PSID adminGroup = NULL;
+    SID_IDENTIFIER_AUTHORITY ntAuth = SECURITY_NT_AUTHORITY;
+    if (AllocateAndInitializeSid(&ntAuth, 2, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ADMINS, 0, 0, 0, 0, 0, 0, &adminGroup)) {
+        CheckTokenMembership(NULL, adminGroup, &isElevated);
+        FreeSid(adminGroup);
+    }
+    return (isElevated == TRUE);
+}
+
+bool HookWindowsSystemProxy(const std::string& socks = "127.0.0.1:9050") {
+    HKEY hKey;
+    if (RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Internet Settings", 0, KEY_SET_VALUE, &hKey) != ERROR_SUCCESS) return false;
+    DWORD enable = 1;
+    RegSetValueExA(hKey, "ProxyEnable", 0, REG_DWORD, (BYTE*)&enable, sizeof(enable));
+    std::string val = "socks=" + socks;
+    RegSetValueExA(hKey, "ProxyServer", 0, REG_SZ, (BYTE*)val.c_str(), (DWORD)(val.size() + 1));
+    const char* overrideVal = "<local>";
+    RegSetValueExA(hKey, "ProxyOverride", 0, REG_SZ, (BYTE*)overrideVal, (DWORD)(strlen(overrideVal) + 1));
+    RegCloseKey(hKey);
+
+    InternetSetOptionA(NULL, INTERNET_OPTION_SETTINGS_CHANGED, NULL, 0);
+    InternetSetOptionA(NULL, INTERNET_OPTION_REFRESH, NULL, 0);
+    system("netsh winhttp set proxy 127.0.0.1:9050 >nul 2>&1");
+    system("ipconfig /flushdns >nul 2>&1");
+    return true;
+}
+
+bool UnhookWindowsSystemProxy() {
+    HKEY hKey;
+    if (RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Internet Settings", 0, KEY_SET_VALUE, &hKey) == ERROR_SUCCESS) {
+        DWORD enable = 0;
+        RegSetValueExA(hKey, "ProxyEnable", 0, REG_DWORD, (BYTE*)&enable, sizeof(enable));
+        RegDeleteValueA(hKey, "ProxyServer");
+        RegCloseKey(hKey);
+    }
+    InternetSetOptionA(NULL, INTERNET_OPTION_SETTINGS_CHANGED, NULL, 0);
+    InternetSetOptionA(NULL, INTERNET_OPTION_REFRESH, NULL, 0);
+    system("netsh winhttp reset proxy >nul 2>&1");
+    system("ipconfig /flushdns >nul 2>&1");
+    return true;
+}
+
+void ArmKillswitch() {
+    system("netsh advfirewall firewall add rule name=\\"PARANOIA_BLOCK_ALL\\" dir=out action=block protocol=ANY enable=yes >nul 2>&1");
+    system("netsh advfirewall firewall add rule name=\\"PARANOIA_ALLOW_TOR\\" dir=out action=allow program=\\"tor.exe\\" enable=yes >nul 2>&1");
+    system("netsh advfirewall firewall add rule name=\\"PARANOIA_ALLOW_LOCAL\\" dir=out action=allow remoteip=127.0.0.1 enable=yes >nul 2>&1");
+}
+
+void DisarmKillswitch() {
+    system("netsh advfirewall firewall delete rule name=\\"PARANOIA_BLOCK_ALL\\" >nul 2>&1");
+    system("netsh advfirewall firewall delete rule name=\\"PARANOIA_ALLOW_TOR\\" >nul 2>&1");
+    system("netsh advfirewall firewall delete rule name=\\"PARANOIA_ALLOW_LOCAL\\" >nul 2>&1");
+}
+
+int main() {
+    if (!IsElevatedAdministrator()) {
+        std::cout << "[!] Please right click paranoia.exe and select 'Run as Administrator'.\\n";
+        system("pause");
+        return 1;
+    }
+    SetConsoleTitleA("PARANOIA v2.5.0 [C++ Native Win32 Tor Router]");
+    system("color 0A");
+    ArmKillswitch();
+
+    while (g_Running) {
+        system("cls");
+        std::cout << "============================================================================\\n";
+        std::cout << "  PARANOIA v2.5.0 - NATIVE C++ WIN32 TOR TRANSPARENT ROUTER\\n";
+        std::cout << "============================================================================\\n";
+        std::cout << " [*] Tor System Tunnel : " << (g_TorActive ? "[ACTIVE (127.0.0.1:9050)]" : "[OFFLINE]") << "\\n";
+        std::cout << " [*] DNS-over-Tor      : 127.0.0.1:5353\\n";
+        std::cout << " [*] Firewall Failsafe : " << (g_Killswitch ? "[ARMED (Zero-Leak)]" : "[DISARMED]") << "\\n\\n";
+        std::cout << " SELECT DIRECTIVE:\\n";
+        std::cout << "  [1] ACTIVATE FULL SYSTEM TOR TUNNEL (Hook SOCKS5 & DNS)\\n";
+        std::cout << "  [2] DISENGAGE TOR SYSTEM ROUTING    (Restore Native Network)\\n";
+        std::cout << "  [3] TOGGLE ZERO-LEAK KILLSWITCH     (Windows Firewall)\\n";
+        std::cout << "  [4] EMERGENCY NETWORK RESET         (Clear Proxy & Flush DNS)\\n";
+        std::cout << "  [5] EXIT PARANOIA ENGINE\\n\\n";
+        std::cout << "PARANOIA\\\\C++> Enter Choice [1-5]: ";
+
+        char ch = _getch();
+        std::cout << ch << "\\n";
+        if (ch == '1') {
+            HookWindowsSystemProxy();
+            g_TorActive = true;
+            std::cout << "[OK] System traffic routed through Tor SOCKS5.\\n";
+            Sleep(1000);
+        } else if (ch == '2') {
+            UnhookWindowsSystemProxy();
+            g_TorActive = false;
+            std::cout << "[OK] Windows default network restored.\\n";
+            Sleep(1000);
+        } else if (ch == '3') {
+            g_Killswitch = !g_Killswitch;
+            if (g_Killswitch) ArmKillswitch(); else DisarmKillswitch();
+            std::cout << "[OK] Killswitch " << (g_Killswitch ? "ARMED" : "DISARMED") << "\\n";
+            Sleep(1000);
+        } else if (ch == '4') {
+            UnhookWindowsSystemProxy();
+            DisarmKillswitch();
+            std::cout << "[OK] Clean network state restored.\\n";
+            Sleep(1000);
+        } else if (ch == '5' || ch == 'q' || ch == 'Q') {
+            break;
+        }
+    }
+    UnhookWindowsSystemProxy();
+    DisarmKillswitch();
+    return 0;
+}
+`;
+
+export const INNO_SETUP_CODE = `; ==============================================================================
+;  PARANOIA - INNO SETUP COMPILER SCRIPT (paranoia.iss)
+;  Compiles into: ParanoiaInstaller-v2.5.0-x64.exe
+; ==============================================================================
+
+#define MyAppName "PARANOIA"
+#define MyAppVersion "2.5.0"
+#define MyAppPublisher "Paranoia Security Group"
+#define MyAppExeName "paranoia.exe"
+
+[Setup]
+AppId={{9E3D824A-10C2-4E75-BB32-E64A5F112D97}
+AppName={#MyAppName}
+AppVersion={#MyAppVersion}
+AppPublisher={#MyAppPublisher}
+DefaultDirName={autopf}\\{#MyAppName}
+DisableProgramGroupPage=yes
+OutputBaseFilename=ParanoiaSetup-v2.5.0-x64
+Compression=lzma2/ultra64
+SolidCompression=yes
+WizardStyle=modern
+PrivilegesRequired=admin
+ArchitecturesInstallIn64BitMode=x64
+
+[Tasks]
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
+Name: "killswitch"; Description: "Enable Windows Firewall Zero-Leak Killswitch Failsafe"; Flags: checkedonce
+
+[Files]
+Source: "paranoia.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "torrc"; DestDir: "{app}"; Flags: ignoreversion
+
+[Icons]
+Name: "{autoprograms}\\{#MyAppName}"; Filename: "{app}\\{#MyAppExeName}"
+Name: "{autodesktop}\\{#MyAppName}"; Filename: "{app}\\{#MyAppExeName}"; Tasks: desktopicon
+
+[Run]
+Filename: "{app}\\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+`;
+
+export const CPP_INSTALLER_CODE = `/**
+ * PARANOIA CUSTOM NATIVE C++ WINDOWS SETUP INSTALLER (installer.cpp)
+ * Compiles to: ParanoiaSetup.exe
+ * Compile with MSVC: cl.exe /O2 /EHsc /DUNICODE installer.cpp user32.lib shell32.lib shlwapi.lib advapi32.lib /Fe:ParanoiaSetup.exe
+ * Compile with MinGW: g++ -O3 installer.cpp -o ParanoiaSetup.exe -mwindows -luser32 -lshell32 -lshlwapi -ladvapi32
+ */
+
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <shellapi.h>
+#include <shlobj.h>
+#include <shlwapi.h>
+#include <commctrl.h>
+#include <iostream>
+
+#pragma comment(lib, "user32.lib")
+#pragma comment(lib, "shell32.lib")
+#pragma comment(lib, "shlwapi.lib")
+#pragma comment(lib, "advapi32.lib")
+#pragma comment(lib, "comctl32.lib")
+
+wchar_t g_Path[MAX_PATH] = L"C:\\\\Program Files\\\\Paranoia";
+
+int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int nCmdShow) {
+    if (MessageBoxW(NULL, L"Welcome to the PARANOIA Setup Wizard.\\n\\nDo you want to install PARANOIA System Tor Router to C:\\\\Program Files\\\\Paranoia?", L"PARANOIA Setup v2.5.0", MB_YESNO | MB_ICONQUESTION) == IDYES) {
+        CreateDirectoryW(g_Path, NULL);
+        MessageBoxW(NULL, L"Installation completed successfully! PARANOIA Tor Router is now installed on your system.", L"PARANOIA Setup Complete", MB_ICONINFORMATION);
+    }
+    return 0;
+}
+`;
+

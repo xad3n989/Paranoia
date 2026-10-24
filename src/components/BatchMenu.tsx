@@ -72,9 +72,9 @@ export const BatchMenu: React.FC<BatchMenuProps> = ({
     },
     {
       id: 7,
-      label: 'EXPORT WINDOWS BATCH / POWERSHELL SUITE',
-      desc: 'Download actual .bat, .ps1, torrc to run on any Windows 10/11 PC',
-      status: '[DOWNLOAD]',
+      label: 'CUSTOM WINDOWS INSTALLER & C++ SUITE',
+      desc: 'ParanoiaSetup.exe native installer, Inno Setup script & C++ engine (zero batch)',
+      status: '[ParanoiaSetup.exe]',
       active: false,
       disabled: false,
     },
