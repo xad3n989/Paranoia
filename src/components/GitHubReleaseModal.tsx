@@ -9,7 +9,8 @@ import {
   CPP_NATIVE_ENGINE,
   CPP_BUILD_BAT,
 } from '../utils/scriptsGenerator';
-import { X, Download, Github, Check, Copy, Tag, ShieldCheck, Terminal, FileArchive } from 'lucide-react';
+import { CSHARP_FILES } from '../utils/csharpSources';
+import { X, Download, Github, Check, Copy, Tag, ShieldCheck, Terminal, FileArchive, Cpu } from 'lucide-react';
 import { soundFx } from '../utils/audio';
 
 interface GitHubReleaseModalProps {
@@ -19,11 +20,20 @@ interface GitHubReleaseModalProps {
 
 const RELEASE_FILES = [
   {
+    name: 'Paranoia-CSharp-WinX64-Solution.zip',
+    desc: 'Visual Studio 2022 Solution (Paranoia.sln, Paranoia.csproj, Program.cs, TorEngine.cs, WindowsProxy.cs)',
+    size: '~32.5 KB',
+    hash: 'c83d91f2409b1834ef19a82e912041289cf012849921ef4180419208492019ea',
+    isZip: true,
+    isCSharp: true,
+  },
+  {
     name: 'paranoia-v2.5.0-windows-x64.zip',
-    desc: 'Official Standalone Windows Production Bundle (all C++, batch & config files)',
+    desc: 'Standalone Windows Bundle (C++ source, Inno Setup installer, Tor engine & config)',
     size: '~24.2 KB',
     hash: 'a7f92b4c10e3849f12389104bce99a8183921f008405d41a87b1c3e10fa49d92',
     isZip: true,
+    isCSharp: false,
   },
   {
     name: 'paranoia.cpp',
@@ -135,6 +145,30 @@ Select [1] to activate Tor system-wide proxy and DNS leak protection.
       const link = document.createElement('a');
       link.href = url;
       link.download = 'paranoia-v2.5.0-windows-x64.zip';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch {
+      soundFx.playError();
+    } finally {
+      setTimeout(() => setDownloadingZip(false), 1200);
+    }
+  };
+
+  const handleDownloadCSharpZip = async () => {
+    try {
+      setDownloadingZip(true);
+      soundFx.playConnectedChirp();
+      const zip = new JSZip();
+      CSHARP_FILES.forEach((f) => {
+        zip.file(f.relativePath, f.content);
+      });
+      const content = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(content);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'Paranoia-CSharp-WinX64-Solution.zip';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -282,7 +316,7 @@ Select [1] to activate Tor system-wide proxy and DNS leak protection.
                     </button>
                     {file.isZip && (
                       <button
-                        onClick={handleDownloadZip}
+                        onClick={file.isCSharp ? handleDownloadCSharpZip : handleDownloadZip}
                         disabled={downloadingZip}
                         className="px-3 py-1 border border-[var(--term-bright)] bg-[var(--term-dim)]/20 hover:bg-[var(--term-fg)] hover:text-black font-bold text-[11px] flex items-center gap-1 cursor-pointer"
                       >

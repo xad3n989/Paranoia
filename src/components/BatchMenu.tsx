@@ -72,9 +72,9 @@ export const BatchMenu: React.FC<BatchMenuProps> = ({
     },
     {
       id: 7,
-      label: 'CUSTOM WINDOWS INSTALLER & C++ SUITE',
-      desc: 'ParanoiaSetup.exe native installer, Inno Setup script & C++ engine (zero batch)',
-      status: '[ParanoiaSetup.exe]',
+      label: 'DOWNLOAD PRECOMPILED PARANOIA.EXE (1-CLICK ZIP)',
+      desc: 'Precompiled Windows x64 binary + bundled Tor & torrc (Ready to run, zero compiling)',
+      status: '[Paranoia.exe]',
       active: false,
       disabled: false,
     },

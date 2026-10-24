@@ -1,0 +1,6 @@
+{
+  "summary":  "Implementation plan to bundle a precompiled standalone Paranoia.exe executable and Tor runtime inside a ready-to-run 1-click Windows release package.",
+  "updatedAt":  "2026-10-24T05:17:18.604963675Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}

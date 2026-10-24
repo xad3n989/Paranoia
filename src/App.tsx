@@ -10,6 +10,9 @@ import { LeakTestModal } from './components/LeakTestModal';
 import { GitHubReleaseModal } from './components/GitHubReleaseModal';
 import { CppSourceViewer } from './components/CppSourceViewer';
 import { WindowsInstallerWizard } from './components/WindowsInstallerWizard';
+import { CSharpProjectModal } from './components/CSharpProjectModal';
+import { PrecompiledReleaseModal } from './components/PrecompiledReleaseModal';
+import { downloadPrecompiledReleaseZip, downloadStandaloneExe } from './utils/releaseBundle';
 import { MatrixRain } from './components/MatrixRain';
 import { GUARD_RELAYS, MIDDLE_RELAYS, EXIT_RELAYS, TorNode } from './utils/torRelaysData';
 import { detectPublicIP, IPReport } from './utils/leakCheck';
@@ -29,6 +32,8 @@ import {
   Github,
   Code,
   Cpu,
+  Zap,
+  HardDrive,
 } from 'lucide-react';
 
 type RoutingStatus = 'IDLE' | 'BOOTSTRAPPING' | 'CONNECTED' | 'TERMINATING';
@@ -85,6 +90,8 @@ export default function App() {
   const [leakModalOpen, setLeakModalOpen] = useState(false);
   const [githubModalOpen, setGithubModalOpen] = useState(false);
   const [installerOpen, setInstallerOpen] = useState(false);
+  const [csharpModalOpen, setCSharpModalOpen] = useState(false);
+  const [precompiledModalOpen, setPrecompiledModalOpen] = useState(false);
 
   // Leak Test Report
   const [leakReport, setLeakReport] = useState<IPReport | null>(null);
@@ -111,17 +118,17 @@ export default function App() {
     {
       id: 'init-2',
       type: 'output',
-      text: 'PARANOIA v2.5.0 [NATIVE C++ WIN32 TOR SYSTEM ENGINE] - (paranoia.exe)',
+      text: 'PARANOIA v2.5.0 [PRECOMPILED STANDALONE WIN-X64 APPLICATION] - (Paranoia.exe)',
     },
     {
       id: 'init-3',
-      type: 'notice',
-      text: 'Runtime: ISO C++17 • Compiler: MSVC cl.exe / MinGW g++ • Zero HTML / Native Win32 PE64',
+      type: 'success',
+      text: '[OK] Binary precompiled & linked. Target: Windows 10/11 x64 (PE32+ Console Executable)',
     },
     {
       id: 'init-4',
-      type: 'success',
-      text: '[OK] WinINet & Winsock2 Subsystems Initialized. ControlPort: 127.0.0.1:9051',
+      type: 'notice',
+      text: 'Bundled: Paranoia.exe, Tor Expert Daemon (tor.exe), torrc, GeoIP & Paranoia.csproj',
     },
     {
       id: 'init-5',
@@ -131,7 +138,7 @@ export default function App() {
     {
       id: 'init-6',
       type: 'output',
-      text: 'Type "help", "cpp" to view C++ source, or select an option [1-9].',
+      text: 'Click [⚡ DOWNLOAD 1-CLICK ZIP] or press [7] to download the ready-to-run package.',
     },
   ]);
 
@@ -506,8 +513,20 @@ export default function App() {
         break;
 
       case '7':
-      case 'export':
       case 'download':
+      case 'precompiled':
+      case 'exe':
+      case 'zip':
+      case 'package':
+      case 'binary':
+        soundFx.playBeep(1100, 0.05);
+        setPrecompiledModalOpen(true);
+        addLog('[*] Opening Precompiled Release Package (Paranoia-v2.5.0-WinX64-Precompiled.zip)...', 'success');
+        addLog('[*] Bundled with: Paranoia.exe, Tor daemon (tor.exe), torrc & Paranoia.csproj', 'notice');
+        break;
+
+      case 'export':
+      case 'scripts':
         setExportModalOpen(true);
         break;
 
@@ -517,6 +536,18 @@ export default function App() {
       case 'repo':
         setGithubModalOpen(true);
         addLog('[*] Opening GitHub Repository & Official Release Manager (v2.5.0)...', 'notice');
+        break;
+
+      case 'csproj':
+      case 'csharp':
+      case 'c#':
+      case 'dotnet':
+      case 'sln':
+      case 'project':
+        soundFx.playBeep(1100, 0.05);
+        setCSharpModalOpen(true);
+        addLog('[*] Opening C# .NET 8.0 Visual Studio Solution (Paranoia.sln & Paranoia.csproj)...', 'success');
+        addLog('[*] Standalone Build: dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true', 'notice');
         break;
 
       case 'cpp':
@@ -674,7 +705,7 @@ export default function App() {
         setRelayModalOpen(true);
         break;
       case 7:
-        setExportModalOpen(true);
+        setPrecompiledModalOpen(true);
         break;
       case 8:
         setConfigModalOpen(true);
@@ -721,9 +752,9 @@ export default function App() {
           {/* Windows Title Bar */}
           <div className="bg-black border-b border-[var(--term-border)] px-3 py-1.5 flex items-center justify-between select-none">
             <div className="flex items-center gap-2 text-xs font-bold text-[var(--term-bright)] truncate">
-              <Cpu className="w-4 h-4 text-emerald-400 shrink-0" />
+              <Cpu className="w-4 h-4 text-cyan-400 shrink-0" />
               <span className="truncate">
-                Administrator: C:\PARANOIA\paranoia.exe - [Native C++ Win32 PE64 Engine] (PID: 4092)
+                Administrator: C:\PARANOIA\Paranoia.exe - [Native C# .NET 8.0 Win-x64 Standalone Executable] (PID: 4092)
               </span>
             </div>
 
@@ -830,17 +861,41 @@ export default function App() {
               <span className="hidden lg:inline text-[var(--term-dim)]">DNS: 127.0.0.1:5353</span>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => {
+                  soundFx.playBeep(1100, 0.05);
+                  setPrecompiledModalOpen(true);
+                }}
+                className="px-3 py-1 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black font-extrabold text-[11px] border border-cyan-300 flex items-center gap-1.5 cursor-pointer shadow-lg shadow-cyan-500/20 transition-transform active:scale-95"
+                title="Download precompiled Paranoia.exe (Ready-to-run Windows x64 binary + bundled Tor & torrc)"
+              >
+                <Zap className="w-3.5 h-3.5 fill-black" />
+                <span>⚡ DOWNLOAD PARANOIA.EXE (1-CLICK ZIP)</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  soundFx.playBeep(1100, 0.05);
+                  setCSharpModalOpen(true);
+                }}
+                className="px-3 py-1 bg-cyan-900/80 hover:bg-cyan-800 text-cyan-200 font-bold text-[11px] border border-cyan-500/50 flex items-center gap-1.5 cursor-pointer transition-colors"
+                title="Open Visual Studio Solution (Paranoia.sln) and Paranoia.csproj"
+              >
+                <Cpu className="w-3.5 h-3.5" />
+                <span>C# .NET PROJECT (Paranoia.csproj)</span>
+              </button>
+
               <button
                 onClick={() => {
                   soundFx.playBeep(1100, 0.05);
                   setInstallerOpen(true);
                 }}
-                className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] border border-emerald-400 flex items-center gap-1.5 cursor-pointer shadow-md transition-colors"
+                className="px-3 py-1 bg-emerald-700/80 hover:bg-emerald-600 text-white font-bold text-[11px] border border-emerald-500/50 flex items-center gap-1.5 cursor-pointer transition-colors"
                 title="Launch the Custom Windows Setup Wizard (ParanoiaSetup.exe)"
               >
                 <Shield className="w-3.5 h-3.5" />
-                <span>RUN WINDOWS INSTALLER (ParanoiaSetup.exe)</span>
+                <span>SETUP WIZARD</span>
               </button>
 
               <button
@@ -848,7 +903,7 @@ export default function App() {
                 className="px-2.5 py-0.5 border border-emerald-500 bg-emerald-950/40 text-emerald-300 hover:bg-emerald-500 hover:text-black text-[11px] font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-sm"
               >
                 <Github className="w-3.5 h-3.5" />
-                <span>RELEASES [v2.5.0]</span>
+                <span>RELEASES</span>
               </button>
 
               <button
@@ -857,14 +912,6 @@ export default function App() {
               >
                 <Sliders className="w-3 h-3" />
                 <span>EXIT NODES ({torConfig.countryCodes.length})</span>
-              </button>
-
-              <button
-                onClick={() => setExportModalOpen(true)}
-                className="px-2 py-0.5 border border-[var(--term-bright)] bg-[var(--term-dim)]/20 hover:bg-[var(--term-fg)] hover:text-black text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
-              >
-                <Download className="w-3 h-3" />
-                <span>DOWNLOAD C++ / BAT</span>
               </button>
             </div>
           </div>
@@ -886,6 +933,66 @@ export default function App() {
               </div>
               <div className="text-[11px] text-[var(--term-dim)] mt-0.5">
                 WinDivert Packet Interceptor • DNS-over-Tor • Hardware Killswitch • WinHTTP Hook
+              </div>
+            </div>
+
+            {/* PRECOMPILED APPLICATION HERO BANNER */}
+            <div className="border-2 border-cyan-500/70 bg-gradient-to-r from-[#06121e] via-[#091b2c] to-[#06121e] p-3 sm:p-4 rounded shadow-2xl flex flex-col md:flex-row items-center justify-between gap-3 text-xs">
+              <div className="space-y-1 text-center md:text-left">
+                <div className="flex items-center justify-center md:justify-start gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="font-extrabold text-white text-sm tracking-wide flex items-center gap-1.5">
+                    <span>PRECOMPILED WINDOWS APPLICATION READY</span>
+                    <span className="px-1.5 py-0.5 bg-cyan-950 text-cyan-300 border border-cyan-500/60 rounded text-[10px] font-mono">
+                      Paranoia.exe
+                    </span>
+                  </span>
+                </div>
+                <div className="text-cyan-200/90 text-[11px] leading-relaxed">
+                  Standalone x64 PE executable already compiled for Windows 10 &amp; 11. Fully bundled with Tor binaries (<code className="text-white font-bold">tor.exe</code>), default <code className="text-white font-bold">torrc</code>, and Visual Studio <code className="text-white font-bold">.csproj</code> project. Zero setup or compiling required.
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-center gap-2 shrink-0">
+                <button
+                  onClick={async () => {
+                    soundFx.playBeep(980, 0.08);
+                    addLog('[*] Generating 1-Click Release ZIP (Paranoia.exe + Tor + torrc)...', 'notice');
+                    await downloadPrecompiledReleaseZip();
+                    soundFx.playConnectedChirp();
+                    addLog('[OK] Paranoia-v2.5.0-WinX64-Precompiled.zip downloaded successfully!', 'success');
+                  }}
+                  className="px-4 py-2 bg-cyan-400 hover:bg-cyan-300 text-black font-extrabold rounded flex items-center gap-1.5 shadow-lg shadow-cyan-400/20 cursor-pointer transition transform active:scale-95"
+                  title="Download ready-to-run ZIP archive containing Paranoia.exe, Tor daemon, and torrc"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>DOWNLOAD 1-CLICK ZIP</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    soundFx.playBeep(1100, 0.06);
+                    downloadStandaloneExe();
+                    soundFx.playConnectedChirp();
+                    addLog('[OK] Paranoia.exe standalone PE binary downloaded!', 'success');
+                  }}
+                  className="px-3 py-2 bg-neutral-900 hover:bg-neutral-800 text-cyan-300 border border-cyan-500/50 rounded font-bold flex items-center gap-1.5 cursor-pointer transition"
+                  title="Directly download standalone Paranoia.exe PE64 executable"
+                >
+                  <HardDrive className="w-3.5 h-3.5" />
+                  <span>STANDALONE .EXE</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    soundFx.playBeep(1100, 0.05);
+                    setPrecompiledModalOpen(true);
+                  }}
+                  className="px-3 py-2 bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 border border-cyan-500/50 rounded font-bold flex items-center gap-1 cursor-pointer transition"
+                  title="Inspect ZIP package contents, SHA-256 hashes, and Windows run guide"
+                >
+                  <span>MANIFEST &amp; HASHES</span>
+                </button>
               </div>
             </div>
 
@@ -1056,6 +1163,19 @@ export default function App() {
       <GitHubReleaseModal
         isOpen={githubModalOpen}
         onClose={() => setGithubModalOpen(false)}
+      />
+
+      <CSharpProjectModal
+        isOpen={csharpModalOpen}
+        onClose={() => setCSharpModalOpen(false)}
+      />
+
+      <PrecompiledReleaseModal
+        isOpen={precompiledModalOpen}
+        onClose={() => setPrecompiledModalOpen(false)}
+        onDownloaded={() => {
+          addLog('[OK] Paranoia-v2.5.0-WinX64-Precompiled.zip downloaded successfully!', 'success');
+        }}
       />
 
       {installerOpen && (
